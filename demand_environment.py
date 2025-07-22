@@ -3,9 +3,9 @@ from abc import abstractmethod, ABC
 from typing import List, Tuple
 from config import SHAPE_GAMMA_POISSON, LAMBDA_GAMMA_POISSON, SCALE_GAMMA_POISSON, SHAPE_GAMMA_GAMMA_LOW_MEAN, \
     SCALE_GAMMA_GAMMA_LOW_MEAN, SHAPE_GAMMA_GAMMA_HIGH_MEAN, SCALE_GAMMA_GAMMA_HIGH_MEAN, SHAPE_GAMMA_LOW_VAR, \
-    SCALE_GAMMA_LOW_VAR, RATE_SPORADIC_HIGH
+    SCALE_GAMMA_LOW_VAR, RATE_SPORADIC_HIGH, Seasonality
 from demand_calculator import DailyDemandDistribution, DemandCalculator
-
+    
 class Environment(ABC):
     def __init__(self, sim_days: int):
         self.sim_days = sim_days
@@ -24,35 +24,31 @@ class Environment(ABC):
     def get_distribution_params(self) -> Tuple[float, float, float]:
         pass
 
-    def get_demand_stats(self) -> Tuple[float, float]:
-        shape, scale, rate = self.get_distribution_params()
-        return self.demand_calculator.get_demand_stats(shape, scale, rate)
+    @abstractmethod
+    def get_weights(self) -> List[float]:
+        pass
 
     def generate_distribution(self) -> List[DailyDemandDistribution]:
         daily_demand_distribution = []
 
         for day in range(self.sim_days):
             demand_distribution = self.create_distribution()
-            demand_mean, demand_std = self.get_demand_stats()
             actual_demand = int(demand_distribution.sample())
 
             daily_demand_distribution.append(
                 DailyDemandDistribution(
                     day=day,
                     actual_demand=actual_demand,
-                    demand_mean=demand_mean,
-                    demand_std=demand_std,
                     forecast_distribution=demand_distribution
                 )
             )
         return daily_demand_distribution
 
-class GammaPoisson(Environment):
-
+class GammaPoisson(Seasonality, Environment):
     def create_distribution(self) -> ciw.dists.Distribution:
         demand_distribution = ciw.dists.MixtureDistribution(
             [
-                ciw.dists.Gamma(shape=SHAPE_GAMMA_POISSON, scale=SCALE_GAMMA_POISSON),
+                ciw.dists.Gamma(shape=SHAPE_GAMMA_POISSON, scale=SCALE_GAMMA_POISSON ),
                 ciw.dists.Poisson(rate=LAMBDA_GAMMA_POISSON)
             ],
             [0.9, 0.1]
@@ -61,6 +57,9 @@ class GammaPoisson(Environment):
 
     def get_distribution_params(self) -> Tuple[float, float, float]:
         return SHAPE_GAMMA_POISSON, SCALE_GAMMA_POISSON, LAMBDA_GAMMA_POISSON
+
+    def get_weights(self) -> List[float]:
+        return [0.9, 0.1]
 
 class GammaGammaHighVariance(Environment):
 
@@ -77,6 +76,9 @@ class GammaGammaHighVariance(Environment):
     def get_distribution_params(self) -> Tuple[float, float, float]:
         return SHAPE_GAMMA_GAMMA_LOW_MEAN, SCALE_GAMMA_GAMMA_LOW_MEAN, SHAPE_GAMMA_GAMMA_HIGH_MEAN
 
+    def get_weights(self) -> List[float]:
+        return [0.5, 0.5]
+
 class SpikingDemand(Environment):
 
     def create_distribution(self) -> str:
@@ -92,6 +94,9 @@ class SpikingDemand(Environment):
     def get_distribution_params(self) -> Tuple[float, float, float]:
         return 0.0, 0.0, RATE_SPORADIC_HIGH
 
+    def get_weights(self) -> List[float]:
+        return [0.95, 0.05]
+
 class SingleGammaLowVariance(Environment):
 
     def create_distribution(self) -> ciw.dists.Distribution:
@@ -100,3 +105,6 @@ class SingleGammaLowVariance(Environment):
 
     def get_distribution_params(self) -> Tuple[float, float, float]:
         return SHAPE_GAMMA_LOW_VAR, SCALE_GAMMA_LOW_VAR, 0.0
+
+    def get_weights(self) -> List[float]:
+        return [1.0, 0.0]

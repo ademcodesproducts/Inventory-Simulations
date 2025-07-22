@@ -15,7 +15,6 @@ simulation_version = input("Choose a simulation version (0-3):\n"
 print(f"Running simulation version: {simulation_version}")
 simulation_version = int(simulation_version)
 
-# Create environment first
 environment_version = input("Choose demand distribution (0-3):\n"
                          "0: 90/10 Gamma/Poisson\n"
                          "1: 50/50 Gamma(mu=20)/Gamma(mu=200)\n" 
@@ -40,14 +39,11 @@ demand_calculator = DemandCalculator(SIM_DAYS)
 demand_calculator.set_environment(selected_environment)
 daily_demand_distribution = demand_calculator
 
-demand_mean = [d.demand_mean for d in daily_demand_distribution.daily_demand_distribution]
-demand_std = [d.demand_std for d in daily_demand_distribution.daily_demand_distribution]
-
 agent_versions = {
-    0: BaseAgent(daily_demand_distribution),
-    1: SafetyStockAgent(daily_demand_distribution),
-    2: ForecastAgent(daily_demand_distribution, demand_mean, demand_std),
-    3: MonteCarloAgent(daily_demand_distribution)
+    0: BaseAgent(daily_demand_distribution, selected_environment),
+    1: SafetyStockAgent(daily_demand_distribution, selected_environment),
+    2: ForecastAgent(daily_demand_distribution, selected_environment),
+    3: MonteCarloAgent(daily_demand_distribution, selected_environment)
 }
 try:
     selected_agent = agent_versions[simulation_version]

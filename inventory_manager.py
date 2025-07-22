@@ -19,7 +19,7 @@ class InventoryManager:
             self.inventory = 0
 
     def apply_writeoff(self, time_period):
-            write_off_quantity = int(self.inventory * WRITE_OFF_RATE)
+            write_off_quantity = self.inventory * WRITE_OFF_RATE
             self.inventory -= write_off_quantity
             self.total_write_off_quantity += write_off_quantity
             return write_off_quantity

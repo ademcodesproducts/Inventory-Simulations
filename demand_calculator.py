@@ -4,22 +4,18 @@ from dataclasses import dataclass
 from typing import Tuple
 from config import LEAD_TIME
 
-
 np.random.seed(42)
 
 @dataclass
 class DailyDemandDistribution:
     day: int
     actual_demand: int
-    demand_mean: float
-    demand_std: float
     forecast_distribution: ciw.dists.Distribution
 
 class DemandCalculator:
     def __init__(self, sim_days: int):
         self.sim_days = sim_days
         self.daily_demand_distribution = []
-        self.environment = None
 
     def set_environment(self, environment):
         self.environment = environment
@@ -38,8 +34,7 @@ class DemandCalculator:
         return samples
 
     @staticmethod
-    def get_demand_stats(shape: float, scale: float, rate: float) -> Tuple[float, float]:
-        weights = [0.9, 0.1]
+    def get_demand_stats(shape: float, scale: float, rate: float, weights: list[float]) -> Tuple[float, float]:
         mean_gamma = shape * scale
         mean_poisson = rate
 
@@ -52,7 +47,7 @@ class DemandCalculator:
                 weights[0] * (var_gamma + (mean_gamma - mixture_mean) ** 2) +
                 weights[1] * (var_poisson + (mean_poisson - mixture_mean) ** 2)
         )
-        mixture_std = np.sqrt(mixture_var)
+        mixture_std = float(np.sqrt(mixture_var))
 
         return mixture_mean, mixture_std
 
