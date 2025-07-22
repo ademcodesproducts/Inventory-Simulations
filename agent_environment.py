@@ -35,7 +35,7 @@ class SafetyStockAgent(Agent):
 
     def compute_reorder_point(self, time_period) -> float:
         historical_demand = self.get_historical_demand(time_period)
-
+dd
         demand_mean = np.mean(historical_demand)
         demand_std = np.std(historical_demand, ddof=1)  # sample standard deviation
 
