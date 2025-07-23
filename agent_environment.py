@@ -35,9 +35,9 @@ class SafetyStockAgent(Agent):
 
     def compute_reorder_point(self, time_period) -> float:
         historical_demand = self.get_historical_demand(time_period)
-dd
+
         demand_mean = np.mean(historical_demand)
-        demand_std = np.std(historical_demand, ddof=1)  # sample standard deviation
+        demand_std = float(np.std(historical_demand, ddof=1)) # sample standard deviation
 
         safety_stock = norm.ppf(DEFAULT_SERVICE_LEVEL) * demand_std * np.sqrt(LEAD_TIME)
         return demand_mean * LEAD_TIME + safety_stock
@@ -46,7 +46,7 @@ class ForecastAgent(Agent):
     def __init__(self, daily_demand_distribution, environment):
         super().__init__(daily_demand_distribution, environment)
 
-    def compute_reorder_point(self, time_period) -> float:
+    def compute_reorder_point(self, time_period) -> float: #forecast = mean 3day -> forecasterror = foreacst - acutalsales
         shape, scale, rate = self.demand_environment.get_distribution_params()
         weights = self.demand_environment.get_weights()
 

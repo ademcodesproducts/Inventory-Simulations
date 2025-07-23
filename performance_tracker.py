@@ -1,3 +1,5 @@
+from config import SIM_DAYS
+
 class PerformanceTracker:
 
     def __init__(self):
@@ -7,6 +9,7 @@ class PerformanceTracker:
         self.write_offs = 0
         self.stock_out_count = 0
         self.total_lost_sales = 0
+        self.service_level = 0
 
     # ADD INVENTORY KPI
     def daily_performance(self, demand_quantity, fulfilled_demand, daily_writeoff):
@@ -23,6 +26,10 @@ class PerformanceTracker:
         self.stock_out_count += 1
         return self.stock_out_count
 
+    def compute_service_level(self) -> float:
+
+        return self.service_level
+
     def performance_summary(self):
         return {
             "total_demand": self.total_demand,
@@ -30,5 +37,6 @@ class PerformanceTracker:
             "fill_rate": self.fill_rate,
             "write_offs": self.write_offs,
             "stock_out_count": self.stock_out_count,
-            "total_lost_sales": self.total_lost_sales
+            "total_lost_sales": self.total_lost_sales,
+            "service_level": self.service_level
         }

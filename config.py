@@ -1,6 +1,5 @@
 # Simulation constraints
 import datetime
-
 import numpy as np
 np.random.seed(42)
 
@@ -33,6 +32,9 @@ SCALE_GAMMA_LOW_VAR = np.random.uniform(14, 18) # 16
 RATE_SPORADIC_HIGH = np.random.uniform(0.005, 0.1)  # 0.05
 
 class Seasonality:
+    def __init__(self, sim_days):
+        self.sim_days = sim_days
+        self.start_date = datetime.date(2023, 1, 1)
 
     def get_daily_seasonality(self, time_period) -> float:
         current_date = self.start_date + datetime.timedelta(days=time_period)
@@ -40,16 +42,19 @@ class Seasonality:
         day_of_week = time_period % 7
 
         month_multipliers = {
-            8: 1.50,  # August
-            2: 0.0,  # February
+            8: 1.50,
+            7: 1.40,
+            6: 1.30,
+            5: 1.20,
+            4: 1.10
         }
-        month_multiplier = month_multipliers.get(month, 1.0)
+        month_multiplier = month_multipliers.get(month, 1.0) # Retrieve multiplier for current_date.month
 
         weekday_multipliers = {
             5: 1.50,  # Saturday
             0: 1.20,  # Monday
             4: 1.20,  # Friday
         }
-        weekday_multiplier = weekday_multipliers.get(day_of_week, 1.0)
+        weekday_multiplier = weekday_multipliers.get(day_of_week, 1.0) # Retrieves the multiplier for current_date.weekday
 
         return month_multiplier * weekday_multiplier

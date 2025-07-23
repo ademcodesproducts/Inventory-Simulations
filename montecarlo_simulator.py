@@ -68,6 +68,6 @@ class MonteCarloSimulator():
         df = pd.DataFrame(results)
         summary_stats = df.agg(['mean', 'std']).transpose()
         summary_stats.columns = ['Mean', 'Standard Deviation']
-        print("Cummulatige Simulation Results")
+        print("Cummulative Simulation Results")
         print("---------------------------------------------")
         print(summary_stats.to_string(float_format="%.6f"))

@@ -1,4 +1,4 @@
-from config import WRITE_OFF_RATE, BASE_STOCK, DEFAULT_SERVICE_LEVEL, MC_SIMS
+from config import WRITE_OFF_RATE, BASE_STOCK
 
 class InventoryManager:
     def __init__(self, order_processor, agent):
@@ -10,7 +10,7 @@ class InventoryManager:
     def reorder(self, time_period):
         reorder_point = self.agent.compute_reorder_point(time_period)
         if self.inventory <= reorder_point:
-            self.order_processor.place_order(time_period, reorder_point)
+            self.order_processor.place_order(time_period, reorder_point - self.inventory)
 
     def inventory_update(self, demand_quantity):
         if self.inventory >= demand_quantity:
