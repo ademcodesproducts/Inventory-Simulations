@@ -6,49 +6,38 @@ from config import SIM_DAYS, N_SIMULATIONS
 import ciw
 ciw.seed(11)
 
-simulation_version = input("Choose a simulation version (0-3):\n"
-                         "0: Historical Demand Agent\n"
-                         "1: Safety Stock Agent\n" 
-                         "2: Forecast Agent\n"
-                         "3: Monte Carlo Agent\n")
+print("Simulation of Agents over different Environments")
 
-print(f"Running simulation version: {simulation_version}")
-simulation_version = int(simulation_version)
-
-environment_version = input("Choose demand distribution (0-3):\n"
-                         "0: 90/10 Gamma/Poisson\n"
-                         "1: 50/50 Gamma(mu=20)/Gamma(mu=200)\n" 
-                         "2: Spiking High Demand\n"
-                         "3: Gamma\n")
-
-print(f"Running demand distribution: {environment_version}")
-environment_version = int(environment_version)
-
-environment_versions = {
-    0: GammaPoisson(SIM_DAYS),
-    1: GammaGammaHighVariance(SIM_DAYS),
-    2: SpikingDemand(SIM_DAYS),
-    3: SingleGammaLowVariance(SIM_DAYS),
+environment_configs = {
+    0: {"name": "90/10 Gamma/Poisson", "class": GammaPoisson},
+    1: {"name": "50/50 Gamma(mu=20)/Gamma(mu=200)", "class": GammaGammaHighVariance},
+    2: {"name": "Spiking High Demand", "class": SpikingDemand},
+    3: {"name": "Gamma", "class": SingleGammaLowVariance},
 }
-try:
-    selected_environment = environment_versions[environment_version]
-except:
-    raise ValueError("Invalid demand distribution version")
 
-demand_calculator = DemandCalculator(SIM_DAYS)
-demand_calculator.set_environment(selected_environment)
-daily_demand_distribution = demand_calculator
-
-agent_versions = {
-    0: BaseAgent(daily_demand_distribution, selected_environment),
-    1: SafetyStockAgent(daily_demand_distribution, selected_environment),
-    2: ForecastAgent(daily_demand_distribution, selected_environment),
-    3: MonteCarloAgent(daily_demand_distribution, selected_environment)
+agent_configs = {
+    0: {"name": "Historical Demand Agent", "class": BaseAgent},
+    1: {"name": "Safety Stock Agent", "class": SafetyStockAgent},
+    2: {"name": "Forecast Agent", "class": ForecastAgent},
+    3: {"name": "Monte Carlo Agent", "class": MonteCarloAgent},
 }
-try:
-    selected_agent = agent_versions[simulation_version]
-except:
-    raise ValueError("Invalid simulation version")
 
-sim = montecarlo_simulator.MonteCarloSimulator(selected_agent, selected_environment)
-sim.run_simulation(N_SIMULATIONS, SIM_DAYS)
+for agent_info in agent_configs.values():
+    for env_info in environment_configs.values():
+        agent_class = agent_info["class"]
+        env_class = env_info["class"]
+        print(f"\n--- Simulating Agent: {agent_info['name']} -> Running on Environment: {env_info['name']} ---")
+
+        selected_environment = env_class(SIM_DAYS)
+
+        demand_calculator = DemandCalculator(SIM_DAYS)
+        demand_calculator.set_environment(selected_environment)
+        daily_demand_distribution = demand_calculator
+
+        selected_agent = agent_class(daily_demand_distribution, selected_environment)
+
+        sim = montecarlo_simulator.MonteCarloSimulator(selected_agent, selected_environment)
+        sim.run_simulation(N_SIMULATIONS, SIM_DAYS)
+
+        print(f"-- Simulation for {agent_info['name']} on {env_info['name']} Completed --")
+

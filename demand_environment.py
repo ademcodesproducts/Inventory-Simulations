@@ -23,14 +23,6 @@ class Environment(ABC):
     def create_distribution(self, time_period: int) -> ciw.dists.Distribution:
         pass
 
-    @abstractmethod
-    def get_distribution_params(self) -> Tuple:
-        pass
-
-    @abstractmethod
-    def get_weights(self) -> List[float]:
-        pass
-
     def generate_distribution(self) -> List[DailyDemandDistribution]:
         daily_demand_distribution = []
 
@@ -66,13 +58,6 @@ class GammaPoisson(Seasonality, Environment):
         )
         return demand_distribution
 
-    def get_distribution_params(self) -> Tuple:
-        return (SHAPE_GAMMA_POISSON, SCALE_GAMMA_POISSON), (0.0, 0.0), LAMBDA_GAMMA_POISSON
-
-    def get_weights(self) -> List[float]:
-        return [0.9, 0.1]
-
-
 class GammaGammaHighVariance(Seasonality, Environment):
     def __init__(self, sim_days: int):
         super().__init__(sim_days)
@@ -92,14 +77,6 @@ class GammaGammaHighVariance(Seasonality, Environment):
         )
         return demand_distribution
 
-    def get_distribution_params(self) -> Tuple:
-        return (SHAPE_GAMMA_GAMMA_LOW_MEAN, SCALE_GAMMA_GAMMA_LOW_MEAN), (SHAPE_GAMMA_GAMMA_HIGH_MEAN,
-                                                                          SCALE_GAMMA_GAMMA_HIGH_MEAN), 0.0
-
-    def get_weights(self) -> List[float]:
-        return [0.5, 0.5]
-
-
 class SpikingDemand(Seasonality, Environment):
     def __init__(self, sim_days: int):
         super().__init__(sim_days)
@@ -118,13 +95,6 @@ class SpikingDemand(Seasonality, Environment):
         )
         return demand_distribution
 
-    def get_distribution_params(self) -> Tuple:
-        return (0.0, 0.0), (0.0, 0.0), RATE_SPORADIC_HIGH
-
-    def get_weights(self) -> List[float]:
-        return [0.95, 0.05]
-
-
 class SingleGammaLowVariance(Seasonality, Environment):
     def __init__(self, sim_days: int):
         super().__init__(sim_days)
@@ -135,9 +105,3 @@ class SingleGammaLowVariance(Seasonality, Environment):
         seasonal_gamma_scale = SCALE_GAMMA_LOW_VAR * demand_multiplier
         demand_distribution = ciw.dists.Gamma(shape=SHAPE_GAMMA_LOW_VAR, scale=seasonal_gamma_scale)
         return demand_distribution
-
-    def get_distribution_params(self) -> Tuple:  # More general Tuple type hint
-        return (SHAPE_GAMMA_LOW_VAR, SCALE_GAMMA_LOW_VAR), (0.0, 0.0), 0.0
-
-    def get_weights(self) -> List[float]:
-        return [1.0, 0.0]
