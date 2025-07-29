@@ -73,7 +73,7 @@ class SimulationPlots:
 
         grouped = df.groupby(["Agent", "Environment"]).agg({
             "Write_Offs": "mean",
-            "Cycle_Service_Level": "mean"
+            "Daily_Service_Level": "mean"
         }).reset_index()
 
         grouped["Label"] = grouped["Agent"] + " | " + grouped["Environment"]
@@ -81,17 +81,17 @@ class SimulationPlots:
         fig = px.scatter(
             grouped,
             x="Write_Offs",
-            y="Cycle_Service_Level",
+            y="Daily_Service_Level",
             color="Agent",
             symbol="Environment",
             text="Label",
-            title="Cycle Service Level vs. Total Write-Offs",
+            title="Daily Service Level vs. Total Write-Offs",
         )
 
         fig.update_traces(textposition='top center', marker=dict(size=10))
         fig.update_layout(
             xaxis_title="Total Write-Offs (Avg)",
-            yaxis_title="Cycle Service Level (Avg)",
+            yaxis_title="Daily Service Level (Avg)",
             height=600
         )
         return fig

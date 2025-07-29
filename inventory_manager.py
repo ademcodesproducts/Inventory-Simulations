@@ -16,7 +16,6 @@ class InventoryManager:
             # ordered quantity is reorder point minus current inventory and orders in delivery
             order_quantity = reorder_point - expected_inventory
             self.order_processor.place_order(time_period, order_quantity)
-            print(f"[REORDER] Day {time_period}: Inv={self.inventory:.0f}, InTransit={orders_in_delivery:.0f}, RP={reorder_point:.0f}, Order={order_quantity:.0f}")
 
     def inventory_update(self, demand_quantity):
         if self.inventory >= demand_quantity:

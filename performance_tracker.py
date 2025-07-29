@@ -27,7 +27,7 @@ class PerformanceTracker:
 
     def performance_summary(self):
         fill_rate = 1 - (self.total_demand - self.total_fulfilled_demand) / self.total_demand if self.total_demand > 0 else 0
-        avg_service_level = self.days_without_stockout / (self.sim_days - self.histo_days) # chagne to cycle service level
+        avg_service_level = self.days_without_stockout / (self.sim_days - self.histo_days) # change to cycle service level
 
         return {
             "total_demand": self.total_demand,
@@ -38,6 +38,6 @@ class PerformanceTracker:
             "total_lost_sales": self.total_lost_sales,
             "avg_service_level": avg_service_level,
             "avg_inventory_level": sum(self.inventory_level) / len(self.inventory_level), # Average of inventory level list
-            "inventory_level": self.inventory_level,
-            "actual_demand": self.actual_demand
+            "inventory_level": self.inventory_level, # List
+            "actual_demand": self.actual_demand # List
         }

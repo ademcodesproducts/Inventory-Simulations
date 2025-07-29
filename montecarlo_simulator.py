@@ -1,3 +1,5 @@
+import ciw
+import numpy as np
 import pandas as pd
 from config import LEAD_TIME, HISTO_DAYS
 from order_processor import OrderProcessor
@@ -11,8 +13,8 @@ class MonteCarloSimulator():
 
     def run_simulation(self, N_SIMULATIONS, SIM_DAYS):
         all_simulation_results = []
-
         for sim in range(N_SIMULATIONS):
+
             time_period = 0
             order_processor = OrderProcessor()
             performance_tracker = PerformanceTracker(SIM_DAYS, HISTO_DAYS)

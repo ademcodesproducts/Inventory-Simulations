@@ -2,8 +2,6 @@ import datetime
 import ciw
 from abc import abstractmethod, ABC
 from typing import List
-import numpy as np
-
 from config import (
     sample_gamma_poisson_params,
     sample_gamma_gamma_params,
@@ -30,9 +28,7 @@ class Environment(ABC):
     def create_distribution(self, time_period: int) -> ciw.dists.Distribution:
         pass
 
-    def generate_distribution(self, seed=11) -> List[DailyDemandDistribution]:
-        np.random.seed(seed)
-        ciw.seed(seed)
+    def generate_distribution(self) -> List[DailyDemandDistribution]:
 
         daily_demand_distribution = []
         for day in range(self.sim_days):
@@ -47,7 +43,6 @@ class Environment(ABC):
             )
         self.demand_distribution = daily_demand_distribution
         return daily_demand_distribution
-
 
 class GammaPoisson(Seasonality, Environment):
     def __init__(self, sim_days: int):

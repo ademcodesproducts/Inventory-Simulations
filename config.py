@@ -8,7 +8,7 @@ HISTO_DAYS = 365
 N_SIMULATIONS = 20
 MC_SIMS = 100
 
-# Replenishment constraints & constants
+# Replenishment constants
 WRITE_OFF_RATE = 0.01
 
 # Stock constraints
@@ -16,7 +16,6 @@ LEAD_TIME = 3
 BASE_STOCK = 0
 DEFAULT_SERVICE_LEVEL = 0.95
 
-# Demand parameter sampling functions
 def sample_gamma_poisson_params():
     return {
         "shape": np.random.uniform(6, 8),

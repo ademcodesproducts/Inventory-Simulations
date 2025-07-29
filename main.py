@@ -1,12 +1,9 @@
 import montecarlo_simulator
-import ciw
 import simulation_plots
 from agent_environment import MonteCarloAgent, SafetyStockAgent, ForecastAgent, BaseAgent
 from demand_environment import GammaPoisson, GammaGammaHighVariance, SingleGammaLowVariance, SpikingDemand
 from demand_calculator import DemandCalculator
 from config import SIM_DAYS, N_SIMULATIONS, HISTO_DAYS
-
-ciw.seed(11)
 
 print("Simulation of Agents over different Environments")
 
@@ -30,7 +27,7 @@ sl_writeoff_plot_data = []
 for env_info in environment_configs.values():
     env_class = env_info["class"]
     selected_environment = env_class(SIM_DAYS)
-    selected_environment.generate_distribution(seed=11)
+    selected_environment.generate_distribution()
 
     demand_calculator = DemandCalculator(SIM_DAYS)
     demand_calculator.set_environment(selected_environment)
@@ -66,7 +63,7 @@ for env_info in environment_configs.values():
                     "Agent": agent_info["name"],
                     "Environment": env_info["name"],
                     "Write_Offs": result["write_offs"],
-                    "Cycle_Service_Level": result["avg_service_level"],
+                    "Daily_Service_Level": result["avg_service_level"],
                     "Fill_Rate": result["fill_rate"]
                 }
             )
