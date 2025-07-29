@@ -66,7 +66,7 @@ for env_info in environment_configs.values():
                     "Agent": agent_info["name"],
                     "Environment": env_info["name"],
                     "Write_Offs": result["write_offs"],
-                    "Cycle_Service_Level": result["daily_service_level"],
+                    "Cycle_Service_Level": result["avg_service_level"],
                     "Fill_Rate": result["fill_rate"]
                 }
             )

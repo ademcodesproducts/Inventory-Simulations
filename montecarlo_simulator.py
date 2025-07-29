@@ -37,7 +37,7 @@ class MonteCarloSimulator():
 
                 inventory_manager.process_deliveries(day)
 
-                fulfilled_demand = min(demand_quantity, base_inventory)
+                fulfilled_demand = min(demand_quantity, base_inventory) # demand that doesnt exceed inventory
                 daily_writeoff = inventory_manager.apply_writeoff(day)
                 inventory = inventory_manager.get_inventory()
 
