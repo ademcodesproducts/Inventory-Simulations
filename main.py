@@ -1,10 +1,14 @@
+import ciw
+import numpy as np
+
 import montecarlo_simulator
 import simulation_plots
 from agent_environment import MonteCarloAgent, SafetyStockAgent, ForecastAgent, BaseAgent
 from demand_environment import GammaPoisson, GammaGammaHighVariance, SingleGammaLowVariance, SpikingDemand
 from demand_calculator import DemandCalculator
 from config import SIM_DAYS, N_SIMULATIONS, HISTO_DAYS
-
+np.random.seed(11)
+ciw.random.seed(11)
 print("Simulation of Agents over different Environments")
 
 environment_configs = {

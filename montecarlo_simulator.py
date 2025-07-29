@@ -1,5 +1,3 @@
-import ciw
-import numpy as np
 import pandas as pd
 from config import LEAD_TIME, HISTO_DAYS
 from order_processor import OrderProcessor
@@ -44,6 +42,7 @@ class MonteCarloSimulator():
                 inventory = inventory_manager.get_inventory()
 
                 performance_tracker.daily_performance(
+                    day=day,
                     demand_quantity=demand_quantity,
                     fulfilled_demand=fulfilled_demand,
                     daily_writeoff=daily_writeoff,

@@ -1,3 +1,4 @@
+from config import LEAD_TIME
 class PerformanceTracker:
 
     def __init__(self, sim_days, histo_days):
@@ -12,7 +13,9 @@ class PerformanceTracker:
         self.inventory_level = []
         self.actual_demand = []
 
-    def daily_performance(self, demand_quantity, fulfilled_demand, daily_writeoff, inventory):
+    def daily_performance(self, day, demand_quantity, fulfilled_demand, daily_writeoff, inventory):
+        if day < self.histo_days + LEAD_TIME:
+            return
         self.total_demand += demand_quantity
         self.total_fulfilled_demand += fulfilled_demand
         self.write_offs += daily_writeoff
@@ -27,7 +30,7 @@ class PerformanceTracker:
 
     def performance_summary(self):
         fill_rate = 1 - (self.total_demand - self.total_fulfilled_demand) / self.total_demand if self.total_demand > 0 else 0
-        avg_service_level = self.days_without_stockout / (self.sim_days - self.histo_days) # change to cycle service level
+        avg_service_level = self.days_without_stockout / (self.sim_days - self.histo_days - LEAD_TIME)
 
         return {
             "total_demand": self.total_demand,
