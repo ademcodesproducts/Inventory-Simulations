@@ -1,11 +1,17 @@
 import datetime
 import ciw
 from abc import abstractmethod, ABC
-from typing import List, Tuple
-from config import SHAPE_GAMMA_POISSON, LAMBDA_GAMMA_POISSON, SCALE_GAMMA_POISSON, SHAPE_GAMMA_GAMMA_LOW_MEAN, \
-    SCALE_GAMMA_GAMMA_LOW_MEAN, SHAPE_GAMMA_GAMMA_HIGH_MEAN, SCALE_GAMMA_GAMMA_HIGH_MEAN, SHAPE_GAMMA_LOW_VAR, \
-    SCALE_GAMMA_LOW_VAR, RATE_SPORADIC_HIGH, Seasonality, SIM_DAYS
+from typing import List
+import numpy as np
+
+from config import (
+    sample_gamma_poisson_params,
+    sample_gamma_gamma_params,
+    sample_single_gamma_params,
+    sample_spiking_params,
+)
 from demand_calculator import DailyDemandDistribution, DemandCalculator
+from config import Seasonality
 
 
 class Environment(ABC):
@@ -13,7 +19,8 @@ class Environment(ABC):
         self.sim_days = sim_days
         self.demand_calculator = DemandCalculator(sim_days)
         self.start_date = datetime.date(2023, 1, 1)
-        self.demand_distribution = self.generate_distribution()
+        self.params = None
+        self.demand_distribution = []
 
     @property
     def daily_demand_distribution(self) -> List[DailyDemandDistribution]:
@@ -23,85 +30,90 @@ class Environment(ABC):
     def create_distribution(self, time_period: int) -> ciw.dists.Distribution:
         pass
 
-    def generate_distribution(self) -> List[DailyDemandDistribution]:
+    def generate_distribution(self, seed=11) -> List[DailyDemandDistribution]:
+        np.random.seed(seed)
+        ciw.seed(seed)
+
         daily_demand_distribution = []
-
-        for day in range(SIM_DAYS):
-            demand_distribution = self.create_distribution(day)
-            actual_demand = int(demand_distribution.sample())
-
+        for day in range(self.sim_days):
+            dist = self.create_distribution(day)
+            actual_demand = int(dist.sample())
             daily_demand_distribution.append(
                 DailyDemandDistribution(
                     day=day,
                     actual_demand=actual_demand,
-                    forecast_distribution=demand_distribution
+                    forecast_distribution=dist
                 )
             )
+        self.demand_distribution = daily_demand_distribution
         return daily_demand_distribution
+
 
 class GammaPoisson(Seasonality, Environment):
     def __init__(self, sim_days: int):
         super().__init__(sim_days)
+        self.params = sample_gamma_poisson_params()
 
     def create_distribution(self, time_period: int) -> ciw.dists.Distribution:
-
         demand_multiplier = self.get_daily_seasonality(time_period)
-        seasonal_scale = SCALE_GAMMA_POISSON * demand_multiplier
-        seasonal_rate = LAMBDA_GAMMA_POISSON * demand_multiplier
+        shape = self.params["shape"]
+        scale = self.params["scale"] * demand_multiplier
+        lambda_ = self.params["lambda_"] * demand_multiplier
 
-        demand_distribution = ciw.dists.MixtureDistribution(
+        return ciw.dists.MixtureDistribution(
             [
-                ciw.dists.Gamma(shape=SHAPE_GAMMA_POISSON, scale=seasonal_scale),
-                ciw.dists.Poisson(rate=seasonal_rate)
+                ciw.dists.Gamma(shape=shape, scale=scale),
+                ciw.dists.Poisson(rate=lambda_)
             ],
             [0.9, 0.1]
         )
-        return demand_distribution
+
 
 class GammaGammaHighVariance(Seasonality, Environment):
     def __init__(self, sim_days: int):
         super().__init__(sim_days)
+        self.params = sample_gamma_gamma_params()
 
     def create_distribution(self, time_period: int) -> ciw.dists.Distribution:
-
         demand_multiplier = self.get_daily_seasonality(time_period)
-        seasonal_scale_low = SCALE_GAMMA_GAMMA_LOW_MEAN * demand_multiplier
-        seasonal_scale_high = SCALE_GAMMA_GAMMA_HIGH_MEAN * demand_multiplier
+        scale_low = self.params["low_scale"] * demand_multiplier
+        scale_high = self.params["high_scale"] * demand_multiplier
 
-        demand_distribution = ciw.dists.MixtureDistribution(
+        return ciw.dists.MixtureDistribution(
             [
-                ciw.dists.Gamma(shape=SHAPE_GAMMA_GAMMA_LOW_MEAN, scale=seasonal_scale_low),
-                ciw.dists.Gamma(shape=SHAPE_GAMMA_GAMMA_HIGH_MEAN, scale=seasonal_scale_high)
+                ciw.dists.Gamma(shape=self.params["low_shape"], scale=scale_low),
+                ciw.dists.Gamma(shape=self.params["high_shape"], scale=scale_high)
             ],
             [0.5, 0.5]
         )
-        return demand_distribution
+
 
 class SpikingDemand(Seasonality, Environment):
     def __init__(self, sim_days: int):
         super().__init__(sim_days)
+        self.params = sample_spiking_params()
 
     def create_distribution(self, time_period: int) -> ciw.dists.Distribution:
-
         demand_multiplier = self.get_daily_seasonality(time_period)
-        seasonal_sporadic_high = RATE_SPORADIC_HIGH * demand_multiplier
+        spike_rate = self.params["rate_sporadic_high"] * demand_multiplier
 
-        demand_distribution = ciw.dists.MixtureDistribution(
+        return ciw.dists.MixtureDistribution(
             [
                 ciw.dists.Deterministic(value=0),
-                ciw.dists.Exponential(rate=seasonal_sporadic_high)
+                ciw.dists.Deterministic(value=spike_rate)
             ],
             [0.95, 0.05]
         )
-        return demand_distribution
+
 
 class SingleGammaLowVariance(Seasonality, Environment):
     def __init__(self, sim_days: int):
         super().__init__(sim_days)
+        self.params = sample_single_gamma_params()
 
     def create_distribution(self, time_period: int) -> ciw.dists.Distribution:
-
         demand_multiplier = self.get_daily_seasonality(time_period)
-        seasonal_gamma_scale = SCALE_GAMMA_LOW_VAR * demand_multiplier
-        demand_distribution = ciw.dists.Gamma(shape=SHAPE_GAMMA_LOW_VAR, scale=seasonal_gamma_scale)
-        return demand_distribution
+        shape = self.params["shape"]
+        scale = self.params["scale"] * demand_multiplier
+
+        return ciw.dists.Gamma(shape=shape, scale=scale)

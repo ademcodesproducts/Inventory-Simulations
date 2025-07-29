@@ -1,12 +1,12 @@
-# Simulation constraints
 import datetime
 import numpy as np
-np.random.seed(42)
+
+# Simulation constraints
 
 SIM_DAYS = 730
 HISTO_DAYS = 365
-N_SIMULATIONS = 100
-MC_SIMS = 1000
+N_SIMULATIONS = 20
+MC_SIMS = 100
 
 # Replenishment constraints & constants
 WRITE_OFF_RATE = 0.01
@@ -16,20 +16,32 @@ LEAD_TIME = 3
 BASE_STOCK = 0
 DEFAULT_SERVICE_LEVEL = 0.95
 
-# Demand constraints
-SHAPE_GAMMA_POISSON = np.random.uniform(6, 8) # 7
-SCALE_GAMMA_POISSON = np.random.uniform(14, 18) # 16
-LAMBDA_GAMMA_POISSON = np.random.uniform(75, 85) # 80
+# Demand parameter sampling functions
+def sample_gamma_poisson_params():
+    return {
+        "shape": np.random.uniform(6, 8),
+        "scale": np.random.uniform(14, 18),
+        "lambda_": np.random.uniform(75, 85),
+    }
 
-SHAPE_GAMMA_GAMMA_LOW_MEAN = np.random.uniform(6, 8) # 7
-SCALE_GAMMA_GAMMA_LOW_MEAN = np.random.uniform(2, 4) # 3
-SHAPE_GAMMA_GAMMA_HIGH_MEAN = np.random.uniform(6, 8) # 7
-SCALE_GAMMA_GAMMA_HIGH_MEAN = np.random.uniform(28, 30) # 29
+def sample_gamma_gamma_params():
+    return {
+        "low_shape": np.random.uniform(6, 8),
+        "low_scale": np.random.uniform(2, 4),
+        "high_shape": np.random.uniform(6, 8),
+        "high_scale": np.random.uniform(28, 30),
+    }
 
-SHAPE_GAMMA_LOW_VAR = np.random.uniform(6, 8) # 7
-SCALE_GAMMA_LOW_VAR = np.random.uniform(14, 18) # 16
+def sample_single_gamma_params():
+    return {
+        "shape": np.random.uniform(6, 8),
+        "scale": np.random.uniform(14, 18),
+    }
 
-RATE_SPORADIC_HIGH = np.random.uniform(0.005, 0.1)  # 0.05
+def sample_spiking_params():
+    return {
+        "rate_sporadic_high": np.random.uniform(180, 220),
+    }
 
 class Seasonality:
     def __init__(self, sim_days):

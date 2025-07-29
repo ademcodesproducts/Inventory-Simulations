@@ -21,5 +21,9 @@ class OrderProcessor:
         self.order_queue = [order for order in self.order_queue if order.arrival_day > time_period]
         return sum(order.quantity for order in arrived_orders)
 
+    def get_incoming_orders(self, current_day: int) -> int:
+        return sum(order.quantity for order in self.order_queue if order.arrival_day > current_day)
+
+
 
 
