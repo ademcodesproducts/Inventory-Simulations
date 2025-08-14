@@ -1,125 +1,190 @@
-from dash import Dash, html, dcc
 import plotly.express as px
+import plotly.graph_objects as go
+from dash import Dash, dcc, html
 import pandas as pd
 
 class SimulationPlots:
-    def __init__(self, inventory_data, sl_writeoff_data):
-        self.inventory_data = pd.DataFrame(inventory_data)
-        self.sl_writeoff_data = pd.DataFrame(sl_writeoff_data)
+
+    def __init__(self, df_inventory_data_summaries):
+        self.df_inventory_data_summaries = df_inventory_data_summaries
+
+        self.daily_metrics_df = self._create_daily_metrics_df()
+
+    def _create_daily_metrics_df(self):
+        records = []
+        for _, row in self.df_inventory_data_summaries.iterrows():
+            for daily_metric in row['daily_performance_metrics']:
+                record = {
+                    'agent': row['agent'],
+                    'environment': row['environment'],
+                    'service_level': row['service_level'],
+                    'trial_number': row['day'],
+                    'day': daily_metric['day'],
+                    'demand': daily_metric['demand'],
+                    'inventory': daily_metric['inventory'],
+                    'fulfilled_demand': daily_metric['fulfilled_demand'],
+                    'write_offs': daily_metric['write_offs'],
+                }
+                records.append(record)
+
+        return pd.DataFrame(records)
 
     def run_dash_app(self):
         app = Dash(__name__)
         app.title = "Inventory Simulation Results"
 
-        inventory_fig = self.create_inventory_figure()
-        writeoff_vs_sl_fig = self.create_writeoff_vs_service_level_figure()
-        writeoff_vs_fillrate_fig = self.create_writeoff_vs_fillrate_figure()
+        inventory_demand_plot = self.plot_daily_inventory_demand()
+        service_level_vs_write_offs_plot = self.plot_service_level_vs_write_offs()
+        fill_rate_vs_write_offs_plot = self.plot_fill_rate_vs_write_offs()
+        service_level_trend_plot = self.plot_service_level_write_off_trend()
 
-        app.layout = html.Div([
-            html.H1("Inventory Simulation Results"),
-            dcc.Tabs([
-                dcc.Tab(label='Inventory Levels', children=[
-                    dcc.Graph(figure=inventory_fig)
-                ]),
-                dcc.Tab(label='Cycle Service Level vs Write-Offs', children=[
-                    dcc.Graph(figure=writeoff_vs_sl_fig)
-                ]),
-                dcc.Tab(label='Fill Rate vs Write-Offs', children=[
-                    dcc.Graph(figure=writeoff_vs_fillrate_fig)
-                ])
-            ])
-        ])
+        app.layout = html.Div(
+            [
+                html.H1("Inventory Simulation Results"),
+                dcc.Tabs(
+                    [
+                        dcc.Tab(
+                            label="Average Inventory & Demand Over Time",
+                            children=[dcc.Graph(figure=inventory_demand_plot)],
+                        ),
+                        dcc.Tab(
+                            label="Observed Service Level vs Write-Offs",
+                            children=[dcc.Graph(figure=service_level_vs_write_offs_plot)],
+                        ),
+                        dcc.Tab(
+                            label="Fill Rate vs Write-Offs",
+                            children=[dcc.Graph(figure=fill_rate_vs_write_offs_plot)],
+                        ),
+                        dcc.Tab(
+                            label="Write-Offs vs Service Level Trend",
+                            children=[dcc.Graph(figure=service_level_trend_plot)],
+                        ),
+                    ]
+                ),
+            ]
+        )
 
         print("Running Dash app at: http://127.0.0.1:8050/")
-        app.run(debug=True)
+        app.run(debug=False)
 
-    def create_inventory_figure(self):
-        df = self.inventory_data
+    def plot_daily_inventory_demand(self):
 
-        grouped = df.groupby(["Agent", "Environment", "Day"]).agg(
-            InventoryLevel=('InventoryLevel', 'mean'),
-            ActualDemand=('ActualDemand', 'mean')
-        ).reset_index()
+        grouped = (
+            self.daily_metrics_df.groupby(["agent", "environment", "day"])
+            .agg(
+                average_inventory=("inventory", "mean"),
+                average_demand=("demand", "mean"),
+            )
+            .reset_index()
+        )
 
         fig = px.line(
             grouped,
-            x="Day",
-            y="InventoryLevel",
-            color="Agent",
-            line_dash="Environment",
-            title="Average Inventory Level Over Time"
+            x="day",
+            y="average_inventory",
+            color="agent",
+            line_dash="environment",
+            title="Average Inventory Level Over Time",
+            labels={
+                "day": "Day",
+                "average_inventory": "Average Inventory Level",
+            }
         )
 
-        # Scatter plot as line for actual demand
-        for (agent, env), group in grouped.groupby(["Agent", "Environment"]):
-            fig.add_scatter(
-                x=group["Day"],
-                y=group["ActualDemand"],
+        for (agent, env), group in grouped.groupby(["agent", "environment"]):
+            fig.add_trace(go.Scatter(
+                x=group["day"],
+                y=group["average_demand"],
                 mode="lines",
                 name=f"Demand | {agent} | {env}",
                 line=dict(dash="dot", color="gray"),
-                showlegend=True
+                showlegend=True,
+            ))
+
+        fig.update_layout(
+            hovermode="x unified",
+        )
+        return fig
+
+    def plot_service_level_vs_write_offs(self):
+
+        grouped = (
+            self.df_inventory_data_summaries.groupby(["agent", "environment"])
+            .agg(
+                write_offs=("write_offs", "mean"),
+                avg_service_level=("avg_service_level", "mean"),
             )
-
-        fig.update_layout(
-            xaxis_title="Day",
-            yaxis_title="Average Inventory Level",
-            hovermode="x unified"
+            .reset_index()
         )
-        return fig
-
-    def create_writeoff_vs_service_level_figure(self):
-        df = self.sl_writeoff_data
-
-        grouped = df.groupby(["Agent", "Environment"]).agg({
-            "Write_Offs": "mean",
-            "Daily_Service_Level": "mean"
-        }).reset_index()
-
-        grouped["Label"] = grouped["Agent"] + " | " + grouped["Environment"]
 
         fig = px.scatter(
             grouped,
-            x="Write_Offs",
-            y="Daily_Service_Level",
-            color="Agent",
-            symbol="Environment",
-            text="Label",
-            title="Daily Service Level vs. Total Write-Offs",
+            x="write_offs",
+            y="avg_service_level",
+            color="agent",
+            symbol="environment",
+            text=grouped["agent"] + " | " + grouped["environment"],
+            title="Observed Service Level vs. Total Write-Offs (Avg)",
+            labels={
+                "write_offs": "Total Write-Offs (Avg)",
+                "avg_service_level": "Observed Service Level (Avg)",
+            }
         )
 
-        fig.update_traces(textposition='top center', marker=dict(size=10))
-        fig.update_layout(
-            xaxis_title="Total Write-Offs (Avg)",
-            yaxis_title="Daily Service Level (Avg)",
-            height=600
-        )
+        fig.update_traces(textposition="top center", marker=dict(size=10))
+        fig.update_layout(height=600)
         return fig
 
-    def create_writeoff_vs_fillrate_figure(self):
-        df = self.sl_writeoff_data
+    def plot_fill_rate_vs_write_offs(self):
 
-        grouped = df.groupby(["Agent", "Environment"]).agg({
-            "Write_Offs": "mean",
-            "Fill_Rate": "mean"
-        }).reset_index()
-
-        grouped["Label"] = grouped["Agent"] + " | " + grouped["Environment"]
+        grouped = (
+            self.df_inventory_data_summaries.groupby(["agent", "environment"])
+            .agg(
+                write_offs=("write_offs", "mean"),
+                fill_rate=("fill_rate", "mean"),
+            )
+            .reset_index()
+        )
 
         fig = px.scatter(
             grouped,
-            x="Write_Offs",
-            y="Fill_Rate",
-            color="Agent",
-            symbol="Environment",
-            text="Label",
-            title="Fill Rate vs. Total Write-Offs",
+            x="write_offs",
+            y="fill_rate",
+            color="agent",
+            symbol="environment",
+            text=grouped["agent"] + " | " + grouped["environment"],
+            title="Fill Rate vs. Total Write-Offs (Avg)",
+            labels={
+                "write_offs": "Total Write-Offs (Avg)",
+                "fill_rate": "Fill Rate (Avg)",
+            }
         )
 
-        fig.update_traces(textposition='top center', marker=dict(size=10))
-        fig.update_layout(
-            xaxis_title="Total Write-Offs (Avg)",
-            yaxis_title="Fill Rate (Avg)",
-            height=600
+        fig.update_traces(textposition="top center", marker=dict(size=10))
+        fig.update_layout(height=600)
+        return fig
+
+    def plot_service_level_write_off_trend(self):
+        grouped = (
+            self.df_inventory_data_summaries.groupby(["agent", "environment", "service_level"])
+            .agg(avg_service_level=("avg_service_level", "mean"),
+                 avg_write_offs=("write_offs", "mean"))
+            .reset_index()
         )
+
+        fig = px.line(
+            grouped,
+            x="avg_service_level",
+            y="avg_write_offs",
+            color="agent",
+            line_dash="environment",
+            markers=True,
+            title="Average Service Level vs Write Offs",
+            labels={
+                "avg_service_level": "Observed Service Level (Avg)",
+                "avg_write_offs": "Write Offs (Avg)",
+            }
+        )
+
+        fig.update_layout(height=600)
         return fig

@@ -1,4 +1,5 @@
-from config import WRITE_OFF_RATE, BASE_STOCK
+from safety_stock_experimentations.config import BASE_STOCK, WRITE_OFF_RATE
+
 
 class InventoryManager:
     def __init__(self, order_processor, agent):
@@ -18,20 +19,15 @@ class InventoryManager:
             self.order_processor.place_order(time_period, order_quantity)
 
     def inventory_update(self, demand_quantity):
-        if self.inventory >= demand_quantity:
-            self.inventory -= demand_quantity
-        else:
-            self.inventory = 0
+        self.inventory -= demand_quantity
 
-    def apply_writeoff(self, time_period):
-            write_off_quantity = self.inventory * WRITE_OFF_RATE
-            self.inventory -= write_off_quantity
-            self.total_write_off_quantity += write_off_quantity
-            return write_off_quantity
+    def apply_writeoff(self):
+        write_off_quantity = self.inventory * WRITE_OFF_RATE
+        self.inventory -= write_off_quantity
+        # TODO: Nothing to do, one could just thing about making the inventory change parametrizable (either it happens or not)
+        self.total_write_off_quantity += write_off_quantity
+        return write_off_quantity
 
     def process_deliveries(self, time_period):
         processed_delivery = self.order_processor.manage_order(time_period)
         self.inventory += processed_delivery
-
-    def get_inventory(self):
-        return self.inventory

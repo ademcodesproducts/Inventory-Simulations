@@ -1,0 +1,29 @@
+[project]
+name = "safety-stock-experimentations"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "duvshani",email = "yovli.duvshani@mail.schwarz"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.poetry]
+packages = [
+    { include = "safety-stock-experimentations" },
+]
+
+[tool.poetry.dependencies]
+numpy = "*"
+scipy = "*"
+black = "*"
+isort = "*"
+ciw = "*"
+pandas = "*"
+plotly = "*"
+dash = "*"
+pyinstrument = "*"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

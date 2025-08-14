@@ -1,21 +1,33 @@
 import ciw
 import numpy as np
+import pandas as pd
 
-import montecarlo_simulator
-import simulation_plots
-from agent_environment import MonteCarloAgent, SafetyStockAgent, ForecastAgent, BaseAgent
-from demand_environment import GammaPoisson, GammaGammaHighVariance, SingleGammaLowVariance, SpikingDemand
-from demand_calculator import DemandCalculator
-from config import SIM_DAYS, N_SIMULATIONS, HISTO_DAYS
+from safety_stock_experimentations import simulation_plots
+from safety_stock_experimentations.agent import (
+    ForecastAgent,
+    MonteCarloAgent,
+    SafetyStockAgent,
+    BaseAgent,
+)
+from safety_stock_experimentations.config import HISTO_DAYS, LEAD_TIME, N_SIMULATIONS
+from safety_stock_experimentations.demand_distribution import (
+    SingleGammaLowVariance,
+    GammaGammaHighVariance,
+    GammaPoisson,
+)
+from safety_stock_experimentations.simulator import Simulator
+
 np.random.seed(11)
 ciw.random.seed(11)
-print("Simulation of Agents over different Environments")
+
+print("Simulation of Agents over different Environments and Service Levels")
+
+service_levels_list = [0.90, 0.92, 0.94, 0.95, 0.96, 0.98]
 
 environment_configs = {
-    0: {"name": "90/10 Gamma/Poisson", "class": GammaPoisson},
-    1: {"name": "50/50 Gamma(mu=20)/Gamma(mu=200)", "class": GammaGammaHighVariance},
-    2: {"name": "Spiking High Demand", "class": SpikingDemand},
-    3: {"name": "Gamma", "class": SingleGammaLowVariance},
+    # 0: {"name": "90/10 Gamma/Poisson", "class": GammaPoisson},
+    # 1: {"name": "50/50 Gamma(mu=20)/Gamma(mu=200)", "class": GammaGammaHighVariance},
+    2: {"name": "Gamma", "class": SingleGammaLowVariance},
 }
 
 agent_configs = {
@@ -25,54 +37,29 @@ agent_configs = {
     3: {"name": "Monte Carlo Agent", "class": MonteCarloAgent},
 }
 
-inventory_plot_data = []
-sl_writeoff_plot_data = []
+inventory_data_summaries = []
 
 for env_info in environment_configs.values():
-    env_class = env_info["class"]
-    selected_environment = env_class(SIM_DAYS)
-    selected_environment.generate_distribution()
+    environments = [env_info["class"]().execute() for _ in range(N_SIMULATIONS)]
 
-    demand_calculator = DemandCalculator(SIM_DAYS)
-    demand_calculator.set_environment(selected_environment)
+    for service_level in service_levels_list:
 
-    for agent_info in agent_configs.values():
-        agent_class = agent_info["class"]
+        for trial_number in range(N_SIMULATIONS):
+            environment = environments[trial_number]
 
-        print(f"\n--- Simulating Agent: {agent_info['name']} -> Running on Environment: {env_info['name']} ---")
+            for agent_info in agent_configs.values():
+                selected_agent = agent_info["class"](environment, service_level)
+                sim = Simulator(selected_agent, environment)
+                inventory_data_summary = sim.run_simulation()
+                inventory_data_summary["service_level"] = service_level
+                inventory_data_summary["agent"] = agent_info["name"]
+                inventory_data_summary["environment"] = env_info["name"]
+                inventory_data_summary["day"] = trial_number
+                inventory_data_summaries.append(inventory_data_summary)
 
-        selected_agent = agent_class(demand_calculator, selected_environment)
+df_inventory_data_summaries = pd.DataFrame(inventory_data_summaries)
+print(df_inventory_data_summaries.groupby(["service_level", "agent"]).agg({"write_offs": "mean", "fill_rate": "mean", "avg_service_level": "mean"})
+)
 
-        sim = montecarlo_simulator.MonteCarloSimulator(selected_agent, selected_environment)
-        inventory_data_summary = sim.run_simulation(N_SIMULATIONS, SIM_DAYS)
-
-        for i, result in enumerate(inventory_data_summary):
-            inventory_level = result["inventory_level"]
-            actual_demand = result["actual_demand"]
-            for day, (inventory, demand) in enumerate(zip(inventory_level, actual_demand), start=HISTO_DAYS):
-                inventory_plot_data.append(
-                    {
-                        "Agent": agent_info["name"],
-                        "Environment": env_info["name"],
-                        "Simulation Run": i + 1,
-                        "Day": day,
-                        "InventoryLevel": inventory,
-                        "ActualDemand": demand,
-                    }
-                )
-
-        for result in inventory_data_summary:
-            sl_writeoff_plot_data.append(
-                {
-                    "Agent": agent_info["name"],
-                    "Environment": env_info["name"],
-                    "Write_Offs": result["write_offs"],
-                    "Daily_Service_Level": result["avg_service_level"],
-                    "Fill_Rate": result["fill_rate"]
-                }
-            )
-
-        print(f"-- Simulation for {agent_info['name']} on {env_info['name']} Completed --")
-
-plotter = simulation_plots.SimulationPlots(inventory_plot_data, sl_writeoff_plot_data)
+plotter = simulation_plots.SimulationPlots(df_inventory_data_summaries)
 plotter.run_dash_app()
